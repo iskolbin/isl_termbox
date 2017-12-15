@@ -1942,14 +1942,17 @@ static int lua_tb_set_cursor( lua_State *L ) {
 }
 
 static int lua_tb_set_cell( lua_State *L ) {
-	int x = luaL_checkint( L, 1 ), y = luaL_checkint( L, 2 );
+	int x = luaL_checkint( L, 1 ), y = luaL_checkint( L, 2 ), i = 0;
 	const char *chstr = luaL_checkstring( L, 3 );
+	size_t len = strlen( chstr );
 	uint16_t fg, bg;
 	uint32_t ch;
-	tb_utf8_char_to_unicode( &ch, chstr );
 	fg = lua_isnumber( L, 4 ) ? lua_tonumber( L, 4 ) : TB_DEFAULT;
 	bg = lua_isnumber( L, 5 ) ? lua_tonumber( L, 5 ) : TB_DEFAULT;
-	tb_change_cell( x, y, ch, fg, bg );
+	for ( i = 0; i < len; i++ ) {
+		tb_utf8_char_to_unicode( &ch, chstr+i );
+		tb_change_cell( x+i, y, ch, fg, bg );
+	}
 	return 0;
 }
 
