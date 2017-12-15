@@ -1,5 +1,5 @@
 /* 
- isl_termbox - v1.1.0 - public domain library for writing text-based user interfaces
+ isl_termbox - v1.2.0 - public domain library for writing text-based user interfaces
                         no warranty implied; use at your own risk
 
  author: Ilya Kolbin (iskolbin@gmail.com)
@@ -39,6 +39,12 @@
  Do this:
 		#define ISL_TERMBOX_IMPLEMENTATION
  before you include this file in *one* C or C++ file to create the implementation.
+
+ Also bindings for Lua 5.1+ is included, to include them use:
+ 		#define ISL_TERMBOX_LUA
+ To build shared library for load in Lua you can use make, Makefile is included in
+ the distribution, this will produce termbox.so, after that you can simply
+		require('termbox') -- Lua 5.2
 
  LICENSE
 
@@ -223,7 +229,7 @@ struct tb_event {
  * from a signal handler (SIGWINCH) to the main event reading loop. Honestly in
  * most cases you should just check the returned code as < 0.
  */
-#define TB_EUNSUPPORTED_TERMINAL -1
+#define TB_TB_ENSUPPORTED_TERMINAL -1
 #define TB_EFAILED_TO_OPEN_TTY   -2
 #define TB_EPIPE_TRAP_ERROR      -3
 
@@ -478,22 +484,22 @@ enum {
 	T_REVERSE,
 	T_ENTER_KEYPAD,
 	T_EXIT_KEYPAD,
-	T_ENTER_MOUSE,
+	T_TB_ENTER_MOUSE,
 	T_EXIT_MOUSE,
 	T_FUNCS_NUM,
 };
 
-#define ENTER_MOUSE_SEQ "\x1b[?1000h\x1b[?1002h\x1b[?1015h\x1b[?1006h"
-#define EXIT_MOUSE_SEQ "\x1b[?1006l\x1b[?1015l\x1b[?1002l\x1b[?1000l"
+#define TB_ENTER_MOUSE_SEQ "\x1b[?1000h\x1b[?1002h\x1b[?1015h\x1b[?1006h"
+#define TB_EXIT_MOUSE_SEQ "\x1b[?1006l\x1b[?1015l\x1b[?1002l\x1b[?1000l"
 
-#define EUNSUPPORTED_TERM -1
+#define TB_ENSUPPORTED_TERM -1
 
 // rxvt-256color
 static const char *rxvt_256color_keys[] = {
 	"\033[11~","\033[12~","\033[13~","\033[14~","\033[15~","\033[17~","\033[18~","\033[19~","\033[20~","\033[21~","\033[23~","\033[24~","\033[2~","\033[3~","\033[7~","\033[8~","\033[5~","\033[6~","\033[A","\033[B","\033[D","\033[C", 0
 };
 static const char *rxvt_256color_funcs[] = {
-	"\0337\033[?47h", "\033[2J\033[?47l\0338", "\033[?25h", "\033[?25l", "\033[H\033[2J", "\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033=", "\033>", ENTER_MOUSE_SEQ, EXIT_MOUSE_SEQ,
+	"\0337\033[?47h", "\033[2J\033[?47l\0338", "\033[?25h", "\033[?25l", "\033[H\033[2J", "\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033=", "\033>", TB_ENTER_MOUSE_SEQ, TB_EXIT_MOUSE_SEQ,
 };
 
 // Eterm
@@ -509,7 +515,7 @@ static const char *screen_keys[] = {
 	"\033OP","\033OQ","\033OR","\033OS","\033[15~","\033[17~","\033[18~","\033[19~","\033[20~","\033[21~","\033[23~","\033[24~","\033[2~","\033[3~","\033[1~","\033[4~","\033[5~","\033[6~","\033OA","\033OB","\033OD","\033OC", 0
 };
 static const char *screen_funcs[] = {
-	"\033[?1049h", "\033[?1049l", "\033[34h\033[?25h", "\033[?25l", "\033[H\033[J", "\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033[?1h\033=", "\033[?1l\033>", ENTER_MOUSE_SEQ, EXIT_MOUSE_SEQ,
+	"\033[?1049h", "\033[?1049l", "\033[34h\033[?25h", "\033[?25l", "\033[H\033[J", "\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033[?1h\033=", "\033[?1l\033>", TB_ENTER_MOUSE_SEQ, TB_EXIT_MOUSE_SEQ,
 };
 
 // rxvt-unicode
@@ -517,7 +523,7 @@ static const char *rxvt_unicode_keys[] = {
 	"\033[11~","\033[12~","\033[13~","\033[14~","\033[15~","\033[17~","\033[18~","\033[19~","\033[20~","\033[21~","\033[23~","\033[24~","\033[2~","\033[3~","\033[7~","\033[8~","\033[5~","\033[6~","\033[A","\033[B","\033[D","\033[C", 0
 };
 static const char *rxvt_unicode_funcs[] = {
-	"\033[?1049h", "\033[r\033[?1049l", "\033[?25h", "\033[?25l", "\033[H\033[2J", "\033[m\033(B", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033=", "\033>", ENTER_MOUSE_SEQ, EXIT_MOUSE_SEQ,
+	"\033[?1049h", "\033[r\033[?1049l", "\033[?25h", "\033[?25l", "\033[H\033[2J", "\033[m\033(B", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033=", "\033>", TB_ENTER_MOUSE_SEQ, TB_EXIT_MOUSE_SEQ,
 };
 
 // linux
@@ -533,7 +539,7 @@ static const char *xterm_keys[] = {
 	"\033OP","\033OQ","\033OR","\033OS","\033[15~","\033[17~","\033[18~","\033[19~","\033[20~","\033[21~","\033[23~","\033[24~","\033[2~","\033[3~","\033OH","\033OF","\033[5~","\033[6~","\033OA","\033OB","\033OD","\033OC", 0
 };
 static const char *xterm_funcs[] = {
-	"\033[?1049h", "\033[?1049l", "\033[?12l\033[?25h", "\033[?25l", "\033[H\033[2J", "\033(B\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033[?1h\033=", "\033[?1l\033>", ENTER_MOUSE_SEQ, EXIT_MOUSE_SEQ,
+	"\033[?1049h", "\033[?1049l", "\033[?12l\033[?25h", "\033[?25l", "\033[H\033[2J", "\033(B\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033[?1h\033=", "\033[?1l\033>", TB_ENTER_MOUSE_SEQ, TB_EXIT_MOUSE_SEQ,
 };
 
 static struct term {
@@ -563,7 +569,7 @@ static int try_compatible(const char *term, const char *name,
 		return 0;
 	}
 
-	return EUNSUPPORTED_TERM;
+	return TB_ENSUPPORTED_TERM;
 }
 
 static int init_term_builtin(void)
@@ -596,7 +602,7 @@ static int init_term_builtin(void)
 			return 0;
 	}
 
-	return EUNSUPPORTED_TERM;
+	return TB_ENSUPPORTED_TERM;
 }
 
 //----------------------------------------------------------------------
@@ -746,8 +752,8 @@ static int init_term(void) {
 			str_offset + 2 * ti_funcs[i], table_offset);
 	}
 
-	funcs[T_FUNCS_NUM-2] = ENTER_MOUSE_SEQ;
-	funcs[T_FUNCS_NUM-1] = EXIT_MOUSE_SEQ;
+	funcs[T_FUNCS_NUM-2] = TB_ENTER_MOUSE_SEQ;
+	funcs[T_FUNCS_NUM-1] = TB_EXIT_MOUSE_SEQ;
 
 	init_from_terminfo = true;
 	free(data);
@@ -1006,9 +1012,9 @@ struct cellbuf {
 	struct tb_cell *cells;
 };
 
-#define CELL(buf, x, y) (buf)->cells[(y) * (buf)->width + (x)]
-#define IS_CURSOR_HIDDEN(cx, cy) (cx == -1 || cy == -1)
-#define LAST_COORD_INIT -1
+#define TB_CELL(buf, x, y) (buf)->cells[(y) * (buf)->width + (x)]
+#define TB_IS_CURSOR_HIDDEN(cx, cy) (cx == -1 || cy == -1)
+#define TB_LAST_COORD_INIT -1
 
 static struct termios orig_tios;
 
@@ -1026,8 +1032,8 @@ static int outputmode = TB_OUTPUT_NORMAL;
 static int inout;
 static int winch_fds[2];
 
-static int lastx = LAST_COORD_INIT;
-static int lasty = LAST_COORD_INIT;
+static int lastx = TB_LAST_COORD_INIT;
+static int lasty = TB_LAST_COORD_INIT;
 static int cursor_x = -1;
 static int cursor_y = -1;
 
@@ -1064,7 +1070,7 @@ int tb_init_fd(int inout_)
 
 	if (init_term() < 0) {
 		close(inout);
-		return TB_EUNSUPPORTED_TERMINAL;
+		return TB_TB_ENSUPPORTED_TERMINAL;
 	}
 
 	if (pipe(winch_fds) < 0) {
@@ -1254,8 +1260,8 @@ void tb_present(void)
 	struct tb_cell *back, *front;
 
 	/* invalidate cursor position */
-	lastx = LAST_COORD_INIT;
-	lasty = LAST_COORD_INIT;
+	lastx = TB_LAST_COORD_INIT;
+	lasty = TB_LAST_COORD_INIT;
 
 	if (buffer_size_change_request) {
 		update_size();
@@ -1264,8 +1270,8 @@ void tb_present(void)
 
 	for (y = 0; y < front_buffer.height; ++y) {
 		for (x = 0; x < front_buffer.width; ) {
-			back = &CELL(&back_buffer, x, y);
-			front = &CELL(&front_buffer, x, y);
+			back = &TB_CELL(&back_buffer, x, y);
+			front = &TB_CELL(&front_buffer, x, y);
 			w = isltb__wcwidth(back->ch);
 			if (w < 1) w = 1;
 			if (memcmp(back, front, sizeof(struct tb_cell)) == 0) {
@@ -1282,7 +1288,7 @@ void tb_present(void)
 			} else {
 				send_char(x, y, back->ch);
 				for (i = 1; i < w; ++i) {
-					front = &CELL(&front_buffer, x + i, y);
+					front = &TB_CELL(&front_buffer, x + i, y);
 					front->ch = 0;
 					front->fg = back->fg;
 					front->bg = back->bg;
@@ -1291,22 +1297,22 @@ void tb_present(void)
 			x += w;
 		}
 	}
-	if (!IS_CURSOR_HIDDEN(cursor_x, cursor_y))
+	if (!TB_IS_CURSOR_HIDDEN(cursor_x, cursor_y))
 		write_cursor(cursor_x, cursor_y);
 	bytebuffer_flush(&output_buffer, inout);
 }
 
 void tb_set_cursor(int cx, int cy)
 {
-	if (IS_CURSOR_HIDDEN(cursor_x, cursor_y) && !IS_CURSOR_HIDDEN(cx, cy))
+	if (TB_IS_CURSOR_HIDDEN(cursor_x, cursor_y) && !TB_IS_CURSOR_HIDDEN(cx, cy))
 		bytebuffer_puts(&output_buffer, funcs[T_SHOW_CURSOR]);
 
-	if (!IS_CURSOR_HIDDEN(cursor_x, cursor_y) && IS_CURSOR_HIDDEN(cx, cy))
+	if (!TB_IS_CURSOR_HIDDEN(cursor_x, cursor_y) && TB_IS_CURSOR_HIDDEN(cx, cy))
 		bytebuffer_puts(&output_buffer, funcs[T_HIDE_CURSOR]);
 
 	cursor_x = cx;
 	cursor_y = cy;
-	if (!IS_CURSOR_HIDDEN(cursor_x, cursor_y))
+	if (!TB_IS_CURSOR_HIDDEN(cursor_x, cursor_y))
 		write_cursor(cursor_x, cursor_y);
 }
 
@@ -1316,7 +1322,7 @@ void tb_put_cell(int x, int y, const struct tb_cell *cell)
 		return;
 	if ((unsigned)y >= (unsigned)back_buffer.height)
 		return;
-	CELL(&back_buffer, x, y) = *cell;
+	TB_CELL(&back_buffer, x, y) = *cell;
 }
 
 void tb_change_cell(int x, int y, uint32_t ch, uint16_t fg, uint16_t bg)
@@ -1348,7 +1354,7 @@ void tb_blit(int x, int y, int w, int h, const struct tb_cell *cells)
 		hh = back_buffer.height - y;
 
 	int sy;
-	struct tb_cell *dst = &CELL(&back_buffer, x, y);
+	struct tb_cell *dst = &TB_CELL(&back_buffer, x, y);
 	const struct tb_cell *src = cells + yo * w + xo;
 	size_t size = sizeof(struct tb_cell) * ww;
 
@@ -1409,7 +1415,7 @@ int tb_select_input_mode(int mode)
 
 		inputmode = mode;
 		if (mode&TB_INPUT_MOUSE) {
-			bytebuffer_puts(&output_buffer, funcs[T_ENTER_MOUSE]);
+			bytebuffer_puts(&output_buffer, funcs[T_TB_ENTER_MOUSE]);
 			bytebuffer_flush(&output_buffer, inout);
 		} else {
 			bytebuffer_puts(&output_buffer, funcs[T_EXIT_MOUSE]);
@@ -1655,8 +1661,8 @@ static void update_term_size(void)
 
 static void send_attr(uint16_t fg, uint16_t bg)
 {
-#define LAST_ATTR_INIT 0xFFFF
-	static uint16_t lastfg = LAST_ATTR_INIT, lastbg = LAST_ATTR_INIT;
+#define TB_LAST_ATTR_INIT 0xFFFF
+	static uint16_t lastfg = TB_LAST_ATTR_INIT, lastbg = TB_LAST_ATTR_INIT;
 	if (fg != lastfg || bg != lastbg) {
 		bytebuffer_puts(&output_buffer, funcs[T_SGR0]);
 
@@ -1720,7 +1726,7 @@ static void send_clear(void)
 {
 	send_attr(foreground, background);
 	bytebuffer_puts(&output_buffer, funcs[T_CLEAR_SCREEN]);
-	if (!IS_CURSOR_HIDDEN(cursor_x, cursor_y))
+	if (!TB_IS_CURSOR_HIDDEN(cursor_x, cursor_y))
 		write_cursor(cursor_x, cursor_y);
 	bytebuffer_flush(&output_buffer, inout);
 
@@ -1729,8 +1735,8 @@ static void send_clear(void)
 	 * actually may be in the correct place, but we simply discard
 	 * optimization once and it gives us simple solution for the case when
 	 * cursor moved */
-	lastx = LAST_COORD_INIT;
-	lasty = LAST_COORD_INIT;
+	lastx = TB_LAST_COORD_INIT;
+	lasty = TB_LAST_COORD_INIT;
 }
 
 static void sigwinch_handler(int xxx)
@@ -1785,7 +1791,7 @@ static int read_up_to(int n) {
 static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 {
 	// ;-)
-#define ENOUGH_DATA_FOR_PARSING 64
+#define TB_ENOUGH_DATA_FOR_PARSING 64
 	fd_set events;
 	memset(event, 0, sizeof(struct tb_event));
 
@@ -1796,7 +1802,7 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 
 	// it looks like input buffer is incomplete, let's try the short path,
 	// but first make sure there is enough space
-	int n = read_up_to(ENOUGH_DATA_FOR_PARSING);
+	int n = read_up_to(TB_ENOUGH_DATA_FOR_PARSING);
 	if (n < 0)
 		return -1;
 	if (n > 0 && extract_event(event, &input_buffer, inputmode))
@@ -1814,7 +1820,7 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 
 		if (FD_ISSET(inout, &events)) {
 			event->type = TB_EVENT_KEY;
-			n = read_up_to(ENOUGH_DATA_FOR_PARSING);
+			n = read_up_to(TB_ENOUGH_DATA_FOR_PARSING);
 			if (n < 0)
 				return -1;
 
@@ -1837,3 +1843,316 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 
 
 #endif // ISL_TERMBOX_IMPLEMENTATION
+
+#ifdef ISL_TERMBOX_LUA
+
+#define LUA_LIB
+#include "lua.h"
+#include "lauxlib.h"
+#include <stdio.h>
+#include <string.h>
+#include <stddef.h>
+#include <ctype.h>
+#include <math.h>
+#include <assert.h>
+
+#if (LUA_VERSION_NUM<=501)
+#define LUA_TB_LUA_LEN(L,i) (lua_pushnumber((L),lua_objlen((L),(i))))
+#define LUA_TB_LUAL_NEWLIB(L,l) (lua_newtable(L),luaL_register(L,NULL,l))
+#else
+#define LUA_TB_LUA_LEN(L,i) lua_len((L),(i))
+#define LUA_TB_LUAL_NEWLIB(L,l) luaL_newlib((L),(l))
+#endif
+
+#ifdef _WIN32
+__declspec (dllexport)
+#endif
+int luaopen_termbox( lua_State *L );
+
+struct lua_tb_State {
+	struct tb_event event;
+	const char TB_EVENT_KEY_[1];
+	const char TB_EVENT_RESIZE_[1];
+	const char TB_EVENT_MOUSE_[1];
+};
+
+static int lua_tb_init( lua_State *L ) {
+	int err = tb_init();
+	struct lua_tb_State *ltbstate;
+
+	if ( err ) {
+		lua_pushnil( L );
+		lua_pushinteger( L, err );
+		return 2;
+	}
+
+	if ( lua_gettop( L ) >= 1 ) {
+		if ( lua_isnumber( L, 1 )) {
+			uint16_t inputmode = (uint16_t) lua_tonumber( L, 1 );
+			tb_select_input_mode( inputmode );
+		}
+	}
+
+	if ( lua_gettop( L ) >= 2 ) {
+		if ( lua_isnumber( L, 2 )) {
+			uint16_t ouputmode = (uint16_t) lua_tonumber( L, 2 );
+			tb_select_output_mode( ouputmode );
+		}
+	}
+
+	lua_pushlightuserdata( L, L );
+	ltbstate = lua_newuserdata( L, sizeof *ltbstate );
+	lua_settable( L, LUA_REGISTRYINDEX );
+
+	return 0;
+}
+
+static int lua_tb_shutdown( lua_State *L ) {
+	tb_shutdown();
+	return 0;
+}
+
+static int lua_tb_width( lua_State *L ) {
+	lua_pushinteger( L, tb_width());
+	return 1;
+}
+
+static int lua_tb_height( lua_State *L ) {
+	lua_pushinteger( L, tb_height());
+	return 1;
+}
+
+static int lua_tb_clear( lua_State *L ) {
+	if ( lua_gettop( L ) >= 2) {
+		uint16_t fg = luaL_checkint( L, 1 ), bg = luaL_checkint( L, 2 );
+		tb_set_clear_attributes( fg, bg );
+	}
+	tb_clear();
+	return 0;
+}
+
+static int lua_tb_present( lua_State *L ) {
+	tb_present();
+	return 0;
+}
+
+static int lua_tb_set_cursor( lua_State *L ) {
+	tb_set_cursor( luaL_checkint( L, 1 ), luaL_checkint( L, 2 ));
+	return 0;
+}
+
+static int lua_tb_set_cell( lua_State *L ) {
+	int x = luaL_checkint( L, 1 ), y = luaL_checkint( L, 2 );
+	const char *chstr = luaL_checkstring( L, 3 );
+	uint16_t fg, bg;
+	uint32_t ch;
+	tb_utf8_char_to_unicode( &ch, chstr );
+	fg = lua_isnumber( L, 4 ) ? lua_tonumber( L, 4 ) : TB_DEFAULT;
+	bg = lua_isnumber( L, 5 ) ? lua_tonumber( L, 5 ) : TB_DEFAULT;
+	tb_change_cell( x, y, ch, fg, bg );
+	return 0;
+}
+
+static int lua_tb_select_input_mode( lua_State *L ) {
+	lua_pushnumber( L, tb_select_input_mode( luaL_checkint( L, 1 )));
+	return 1;
+}
+
+static int lua_tb_select_output_mode( lua_State *L ) {
+	lua_pushnumber( L, tb_select_output_mode( luaL_checkint( L, 1 )));
+	return 1;
+}
+
+static int lua_tb_get_cell( lua_State *L ) {
+	uint16_t x = luaL_checknumber( L, 1 ), y = luaL_checknumber( L, 2 );
+	if ( x >= 0 && x < tb_width() && y >= 0 && y < tb_height()) {
+		struct tb_cell *cell = (tb_cell_buffer() + y * tb_width() + x);
+		lua_pushnumber( L, cell->ch );
+		lua_pushnumber( L, cell->fg );
+		lua_pushnumber( L, cell->bg );
+		return 3;
+	} else {
+		luaL_error( L, "coordinates out of bounds" );
+		return 0;
+	}
+}
+
+#define LUA_TB_CALL(event) \
+	case event: \
+lua_pushlightuserdata( L, (void *) &ltbstate->event ## _ ); \
+lua_gettable( L, LUA_REGISTRYINDEX ); \
+if ( lua_isfunction( L, -1 )) {
+
+#define LUA_TB_RETURN(event,inV,outV) \
+	if ( lua_pcall( L, (inV), (outV), 0) != 0 ) { \
+		luaL_error( L, "error calling '%s': %s", # event, lua_tostring( L, -1 )); \
+	} \
+} \
+return 0; \
+
+static int lua_tb_peek_event( lua_State *L ) {
+	int event_type = 0;
+	struct lua_tb_State *ltbstate;
+	struct tb_event *event_struct;
+
+	lua_pushlightuserdata( L, L );
+	lua_gettable( L, LUA_REGISTRYINDEX );
+	ltbstate = lua_touserdata( L, -1 );
+	event_struct = &ltbstate->event;
+	if ( lua_isnumber( L, 1 ) ) {
+		event_type = tb_peek_event( event_struct, (int) lua_tonumber( L, 1 ));
+	} else {
+		event_type = tb_poll_event( event_struct );
+	}
+
+	switch ( event_type ) {
+		LUA_TB_CALL( TB_EVENT_KEY )
+		if ( event_struct->ch ) {
+			char buffer[8] = {0};
+			tb_utf8_unicode_to_char( buffer, event_struct->ch );
+			lua_pushstring( L, buffer );
+			lua_pushnumber( L, event_struct->ch );
+		} else {
+			lua_pushstring( L, "" );
+			lua_pushnumber( L, event_struct->key );
+		}
+		lua_pushnumber( L, event_struct->mod );
+		LUA_TB_RETURN( TB_EVENT_KEY, 3, 0 )
+
+		LUA_TB_CALL( TB_EVENT_RESIZE )
+		lua_pushnumber( L, event_struct->w );
+		lua_pushnumber( L, event_struct->h );
+		LUA_TB_RETURN( TB_EVENT_RESIZE, 2, 0 )
+
+		LUA_TB_CALL( TB_EVENT_MOUSE )
+		lua_pushnumber( L, event_struct->x );
+		lua_pushnumber( L, event_struct->y );
+		lua_pushnumber( L, event_struct->key );
+		LUA_TB_RETURN( TB_EVENT_MOUSE, 3, 0 )
+	}
+
+	return 0;
+}
+
+#undef LUA_TB_CALL
+#undef LUA_TB_RETURN
+
+#define LUA_TB_CALLBACK(event) \
+	case event: { \
+								lua_pushlightuserdata( L, (void *) &ltbstate->event ## _ ); \
+								lua_pushvalue( L, 2 ); \
+								lua_settable( L, LUA_REGISTRYINDEX ); \
+								break; \
+							}
+
+static int lua_tb_set_callback( lua_State *L ) {
+	int event_type;
+	struct lua_tb_State *ltbstate;
+	lua_pushlightuserdata( L, L );
+	lua_gettable( L, LUA_REGISTRYINDEX );
+	ltbstate = lua_touserdata( L, -1 );
+	event_type = luaL_checkint( L, 1 );
+	if ( lua_isfunction( L, 2 )) {
+		switch ( event_type ) {
+			LUA_TB_CALLBACK( TB_EVENT_KEY );
+			LUA_TB_CALLBACK( TB_EVENT_RESIZE );
+			LUA_TB_CALLBACK( TB_EVENT_MOUSE );
+		}
+	}
+	return 0;
+}
+
+#undef LUA_TB_CALLBACK
+
+#define LUA_TB_CONST(k,v) lua_pushnumber(L,(v)); lua_setfield(L,-2,(k))
+
+static void lua_tb_const( lua_State *L ) {
+	LUA_TB_CONST( "F1", TB_KEY_F1 );
+	LUA_TB_CONST( "F2", TB_KEY_F2 );
+	LUA_TB_CONST( "F3", TB_KEY_F3 );
+	LUA_TB_CONST( "F4", TB_KEY_F4 );
+	LUA_TB_CONST( "F5", TB_KEY_F5 );
+	LUA_TB_CONST( "F6", TB_KEY_F6 );
+	LUA_TB_CONST( "F7", TB_KEY_F7 );
+	LUA_TB_CONST( "F8", TB_KEY_F8 );
+	LUA_TB_CONST( "F9", TB_KEY_F9 );
+	LUA_TB_CONST( "F10", TB_KEY_F10 );
+	LUA_TB_CONST( "F11", TB_KEY_F11 );
+	LUA_TB_CONST( "F12", TB_KEY_F12 );
+	LUA_TB_CONST( "INSERT", TB_KEY_INSERT );
+	LUA_TB_CONST( "DELETE", TB_KEY_DELETE );
+	LUA_TB_CONST( "HOME", TB_KEY_HOME );
+	LUA_TB_CONST( "END", TB_KEY_END );
+	LUA_TB_CONST( "PGUP", TB_KEY_PGUP );
+	LUA_TB_CONST( "PGDN", TB_KEY_PGDN );
+	LUA_TB_CONST( "UP", TB_KEY_ARROW_UP );
+	LUA_TB_CONST( "DOWN", TB_KEY_ARROW_DOWN );
+	LUA_TB_CONST( "LEFT", TB_KEY_ARROW_LEFT );
+	LUA_TB_CONST( "RIGHT", TB_KEY_ARROW_RIGHT );
+	LUA_TB_CONST( "BACKSPACE", TB_KEY_BACKSPACE );
+	LUA_TB_CONST( "BACKSPACE2", TB_KEY_BACKSPACE2 );
+	LUA_TB_CONST( "ENTER", TB_KEY_ENTER );
+	LUA_TB_CONST( "ESC", TB_KEY_ESC );
+	LUA_TB_CONST( "SPACE", TB_KEY_SPACE );
+	LUA_TB_CONST( "MOUSE_LEFT", TB_KEY_MOUSE_LEFT );
+	LUA_TB_CONST( "MOUSE_RIGHT", TB_KEY_MOUSE_RIGHT );
+	LUA_TB_CONST( "MOUSE_MIDDLE", TB_KEY_MOUSE_MIDDLE );
+	LUA_TB_CONST( "MOUSE_RELEASE", TB_KEY_MOUSE_RELEASE );
+	LUA_TB_CONST( "MOUSE_WHEEL_UP", TB_KEY_MOUSE_WHEEL_UP );
+	LUA_TB_CONST( "MOUSE_WHEEL_DOWN", TB_KEY_MOUSE_WHEEL_DOWN );
+	LUA_TB_CONST( "INPUT_CURRENT", TB_INPUT_CURRENT );
+	LUA_TB_CONST( "INPUT_ESC", TB_INPUT_ESC );
+	LUA_TB_CONST( "INPUT_ALT", TB_INPUT_ALT );
+	LUA_TB_CONST( "INPUT_MOUSE", TB_INPUT_MOUSE );
+	LUA_TB_CONST( "OUTPUT_CURRENT", TB_OUTPUT_CURRENT );
+	LUA_TB_CONST( "OUTPUT_NORMAL", TB_OUTPUT_NORMAL );
+	LUA_TB_CONST( "OUTPUT_256", TB_OUTPUT_256 );
+	LUA_TB_CONST( "OUTPUT_216", TB_OUTPUT_216 );
+	LUA_TB_CONST( "OUTPUT_GRAYSCALE", TB_OUTPUT_GRAYSCALE );
+	LUA_TB_CONST( "EVENT_NONE", 0 );
+	LUA_TB_CONST( "EVENT_KEY", TB_EVENT_KEY );
+	LUA_TB_CONST( "EVENT_RESIZE", TB_EVENT_RESIZE );
+	LUA_TB_CONST( "EVENT_MOUSE", TB_EVENT_MOUSE );
+	LUA_TB_CONST( "DEFAULT", TB_DEFAULT);
+	LUA_TB_CONST( "BLACK", TB_BLACK );
+	LUA_TB_CONST( "RED", TB_RED);
+	LUA_TB_CONST( "GREEN", TB_GREEN );
+	LUA_TB_CONST( "YELLOW", TB_YELLOW );
+	LUA_TB_CONST( "BLUE", TB_BLUE );
+	LUA_TB_CONST( "MAGENTA", TB_MAGENTA );
+	LUA_TB_CONST( "CYAN", TB_CYAN );
+	LUA_TB_CONST( "WHITE", TB_WHITE );
+	LUA_TB_CONST( "BOLD", TB_BOLD );
+	LUA_TB_CONST( "UNDERLINE", TB_UNDERLINE );
+	LUA_TB_CONST( "REVERSE", TB_REVERSE );
+}
+
+#undef LUA_TB_CONST
+
+static const luaL_Reg lua_tblib[] = {
+	{"init", lua_tb_init},
+	{"shutdown", lua_tb_shutdown},
+	{"present", lua_tb_present},
+	{"width", lua_tb_width},
+	{"height", lua_tb_height},
+	{"clear", lua_tb_clear},
+	{"setcell", lua_tb_set_cell},
+	{"getcell", lua_tb_get_cell},
+	{"selectinput", lua_tb_select_input_mode},
+	{"selectoutput", lua_tb_select_output_mode},
+	{"peek", lua_tb_peek_event},
+	{"setcursor", lua_tb_set_cursor},
+	{"setcallback", lua_tb_set_callback},
+	{NULL, NULL},
+};
+
+#ifdef _WIN32
+__declspec (dllexport)
+#endif
+int luaopen_termbox( lua_State *L ) {
+	LUA_TB_LUAL_NEWLIB( L, lua_tblib );
+	lua_tb_const( L );
+	return 1;
+}
+
+#endif // ISL_TERMBOX_LUA
