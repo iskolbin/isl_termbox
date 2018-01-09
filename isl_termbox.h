@@ -1,5 +1,5 @@
 /* 
- isl_termbox - v1.2.1 - public domain library for writing text-based user interfaces
+ isl_termbox - v1.3.0 - public domain library for writing text-based user interfaces
                         no warranty implied; use at your own risk
 
  author: Ilya Kolbin (iskolbin@gmail.com)
@@ -1945,18 +1945,18 @@ static int lua_tb_set_cursor( lua_State *L ) {
 }
 
 static int lua_tb_set_cell( lua_State *L ) {
-	int x = luaL_checkint( L, 1 ), y = luaL_checkint( L, 2 ), i = 0;
-	const char *chstr = luaL_checkstring( L, 3 );
-	size_t len = strlen( chstr );
-	uint16_t fg, bg;
-	uint32_t ch;
-	fg = lua_isnumber( L, 4 ) ? lua_tonumber( L, 4 ) : TB_DEFAULT;
-	bg = lua_isnumber( L, 5 ) ? lua_tonumber( L, 5 ) : TB_DEFAULT;
-	for ( i = 0; i < len; i++ ) {
-		tb_utf8_char_to_unicode( &ch, chstr+i );
-		tb_change_cell( x+i, y, ch, fg, bg );
+	int x = luaL_checkint( L, 1 ), y = luaL_checkint( L, 2 ), len = 0;
+	const char *str = luaL_checkstring( L, 3 );
+	uint16_t fg = lua_isnumber( L, 4 ) ? lua_tonumber( L, 4 ) : TB_DEFAULT;
+	uint16_t bg = lua_isnumber( L, 5 ) ? lua_tonumber( L, 5 ) : TB_DEFAULT;
+	while ( *str ) {
+		uint32_t uni;
+		str += tb_utf8_char_to_unicode( &uni, str );
+		tb_change_cell( x++, y, uni, fg, bg );
+		len++;
 	}
-	return 0;
+	lua_pushinteger( L, len );
+	return 1;
 }
 
 static int lua_tb_select_input_mode( lua_State *L ) {
