@@ -1,5 +1,5 @@
 /* 
- isl_termbox - v1.3.0 - public domain library for writing text-based user interfaces
+ isl_termbox - v1.4.0 - public domain library for writing text-based user interfaces
                         no warranty implied; use at your own risk
 
  author: Ilya Kolbin (iskolbin@gmail.com)
@@ -1849,9 +1849,6 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 
 #ifdef ISL_TERMBOX_LUA
 
-#define LUA_LIB
-#include <lua.h>
-#include <lauxlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
@@ -1867,8 +1864,13 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 #define LUA_TB_LUAL_NEWLIB(L,l) luaL_newlib((L),(l))
 #endif
 
+#ifdef ISL_TERMBOX_DYNAMIC_LIB
+#include <lua.h>
+#include <lauxlib.h>
+#define LUA_LIB
 #ifdef _WIN32
 __declspec (dllexport)
+#endif
 #endif
 int luaopen_termbox( lua_State *L );
 
@@ -1960,22 +1962,22 @@ static int lua_tb_set_cell( lua_State *L ) {
 }
 
 static int lua_tb_select_input_mode( lua_State *L ) {
-	lua_pushnumber( L, tb_select_input_mode( luaL_checkint( L, 1 )));
+	lua_pushinteger( L, tb_select_input_mode( luaL_checkint( L, 1 )));
 	return 1;
 }
 
 static int lua_tb_select_output_mode( lua_State *L ) {
-	lua_pushnumber( L, tb_select_output_mode( luaL_checkint( L, 1 )));
+	lua_pushinteger( L, tb_select_output_mode( luaL_checkint( L, 1 )));
 	return 1;
 }
 
 static int lua_tb_get_cell( lua_State *L ) {
-	uint16_t x = luaL_checknumber( L, 1 ), y = luaL_checknumber( L, 2 );
-	if ( x >= 0 && x < tb_width() && y >= 0 && y < tb_height()) {
+	uint16_t x = luaL_checkint( L, 1 ), y = luaL_checkint( L, 2 );
+	if (x < tb_width() && y < tb_height()) {
 		struct tb_cell *cell = (tb_cell_buffer() + y * tb_width() + x);
-		lua_pushnumber( L, cell->ch );
-		lua_pushnumber( L, cell->fg );
-		lua_pushnumber( L, cell->bg );
+		lua_pushinteger( L, cell->ch );
+		lua_pushinteger( L, cell->fg );
+		lua_pushinteger( L, cell->bg );
 		return 3;
 	} else {
 		luaL_error( L, "coordinates out of bounds" );
@@ -2017,23 +2019,23 @@ static int lua_tb_peek_event( lua_State *L ) {
 			char buffer[8] = {0};
 			tb_utf8_unicode_to_char( buffer, event_struct->ch );
 			lua_pushstring( L, buffer );
-			lua_pushnumber( L, event_struct->ch );
+			lua_pushinteger( L, event_struct->ch );
 		} else {
 			lua_pushstring( L, "" );
-			lua_pushnumber( L, event_struct->key );
+			lua_pushinteger( L, event_struct->key );
 		}
-		lua_pushnumber( L, event_struct->mod );
+		lua_pushinteger( L, event_struct->mod );
 		LUA_TB_RETURN( TB_EVENT_KEY, 3, 0 )
 
 		LUA_TB_CALL( TB_EVENT_RESIZE )
-		lua_pushnumber( L, event_struct->w );
-		lua_pushnumber( L, event_struct->h );
+		lua_pushinteger( L, event_struct->w );
+		lua_pushinteger( L, event_struct->h );
 		LUA_TB_RETURN( TB_EVENT_RESIZE, 2, 0 )
 
 		LUA_TB_CALL( TB_EVENT_MOUSE )
-		lua_pushnumber( L, event_struct->x );
-		lua_pushnumber( L, event_struct->y );
-		lua_pushnumber( L, event_struct->key );
+		lua_pushinteger( L, event_struct->x );
+		lua_pushinteger( L, event_struct->y );
+		lua_pushinteger( L, event_struct->key );
 		LUA_TB_RETURN( TB_EVENT_MOUSE, 3, 0 )
 	}
 
@@ -2070,7 +2072,7 @@ static int lua_tb_set_callback( lua_State *L ) {
 
 #undef LUA_TB_CALLBACK
 
-#define LUA_TB_CONST(k,v) lua_pushnumber(L,(v)); lua_setfield(L,-2,(k))
+#define LUA_TB_CONST(k,v) lua_pushinteger(L,(v)); lua_setfield(L,-2,(k))
 
 static void lua_tb_const( lua_State *L ) {
 	LUA_TB_CONST( "F1", TB_KEY_F1 );
