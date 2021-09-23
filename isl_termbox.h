@@ -638,7 +638,7 @@ static char *read_file(const char *file) {
 }
 
 static char *terminfo_try_path(const char *path, const char *term) {
-	char tmp[4096];
+	char tmp[1<<13];
 	snprintf(tmp, sizeof(tmp), "%s/%c/%s", path, term[0], term);
 	tmp[sizeof(tmp)-1] = '\0';
 	char *data = read_file(tmp);
@@ -1849,6 +1849,8 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 
 #ifdef ISL_TERMBOX_LUA
 
+#include <lua.h>
+#include <lauxlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
@@ -1864,9 +1866,13 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 #define LUA_TB_LUAL_NEWLIB(L,l) luaL_newlib((L),(l))
 #endif
 
+#if (LUA_VERSION_NUM>=503)
+#ifndef luaL_checkint
+#define luaL_checkint(L,n) ((int)luaL_checkinteger(L, (n)))
+#endif
+#endif
+
 #ifdef ISL_TERMBOX_DYNAMIC_LIB
-#include <lua.h>
-#include <lauxlib.h>
 #define LUA_LIB
 #ifdef _WIN32
 __declspec (dllexport)
