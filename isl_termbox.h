@@ -1,12 +1,12 @@
 /* 
- isl_termbox - v1.4.1 - public domain library for writing text-based user interfaces
-                        no warranty implied; use at your own risk
+ isl_termbox - v1.5 - public domain library for writing text-based user interfaces
+                      no warranty implied; use at your own risk
 
  author: Ilya Kolbin (iskolbin@gmail.com)
  url: github.com/iskolbin/isl_termbox
 
  This is single-header port of Termbox library by nsf (no.smile.face@gmail.com)
- https://github.com/nsf/termbox
+ https://github.com/nsf/termbox version 1.1.2
 	
  Original licenese taken from https://github.com/nsf/termbox/blob/master/COPYING
 
@@ -31,11 +31,6 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
 
- Includes wcwidth function implementation by mattn (mattn.jp@gmail.com)
- https://github.com/mattn/wcwidth.c
-
- License for wcwidth implementation is unknown
-
  Do this:
 		#define ISL_TERMBOX_IMPLEMENTATION
  before you include this file in *one* C or C++ file to create the implementation.
@@ -59,16 +54,10 @@
 #include <stdint.h>
 
 /* for shared objects */
-#ifdef ISLTB_STATIC
- #define SO_IMPORT static
-#elif defined(ISLTB_SHARED)
- #if __GNUC__ >= 4
-  #define SO_IMPORT __attribute__((visibility("default")))
- #else
-  #error "You can build shared library only using GCC 4+"
- #endif
+#if __GNUC__ >= 4
+ #define SO_IMPORT __attribute__((visibility("default")))
 #else
- #define SO_IMPORT extern
+ #define SO_IMPORT
 #endif
 
 #ifdef __cplusplus
@@ -229,7 +218,7 @@ struct tb_event {
  * from a signal handler (SIGWINCH) to the main event reading loop. Honestly in
  * most cases you should just check the returned code as < 0.
  */
-#define TB_TB_ENSUPPORTED_TERMINAL -1
+#define TB_EUNSUPPORTED_TERMINAL -1
 #define TB_EFAILED_TO_OPEN_TTY   -2
 #define TB_EPIPE_TRAP_ERROR      -3
 
@@ -342,11 +331,11 @@ SO_IMPORT int tb_select_input_mode(int mode);
  *        tb_change_cell(x, y, '@', 184, 240);
  *        tb_change_cell(x, y, '@', 0xb8, 0xf0);
  *
- * 2. TB_OUTPUT_216        => [0..216]
+ * 3. TB_OUTPUT_216        => [0..216]
  *    This mode supports the 3rd range of the 256 mode only.
  *    But you don't need to provide an offset.
  *
- * 3. TB_OUTPUT_GRAYSCALE  => [0..23]
+ * 4. TB_OUTPUT_GRAYSCALE  => [0..23]
  *    This mode supports the 4th range of the 256 mode only.
  *    But you dont need to provide an offset.
  *
@@ -393,6 +382,7 @@ SO_IMPORT int tb_utf8_unicode_to_char(char *out, uint32_t c);
 #include <signal.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <sys/select.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -457,8 +447,7 @@ static void bytebuffer_resize(struct bytebuffer *b, int len) {
 }
 
 static void bytebuffer_flush(struct bytebuffer *b, int fd) {
-	if (write(fd, b->buf, b->len))
-		;
+	write(fd, b->buf, b->len);
 	bytebuffer_clear(b);
 }
 
@@ -485,22 +474,22 @@ enum {
 	T_REVERSE,
 	T_ENTER_KEYPAD,
 	T_EXIT_KEYPAD,
-	T_TB_ENTER_MOUSE,
+	T_ENTER_MOUSE,
 	T_EXIT_MOUSE,
 	T_FUNCS_NUM,
 };
 
-#define TB_ENTER_MOUSE_SEQ "\x1b[?1000h\x1b[?1002h\x1b[?1015h\x1b[?1006h"
-#define TB_EXIT_MOUSE_SEQ "\x1b[?1006l\x1b[?1015l\x1b[?1002l\x1b[?1000l"
+#define ENTER_MOUSE_SEQ "\x1b[?1000h\x1b[?1002h\x1b[?1015h\x1b[?1006h"
+#define EXIT_MOUSE_SEQ "\x1b[?1006l\x1b[?1015l\x1b[?1002l\x1b[?1000l"
 
-#define TB_ENSUPPORTED_TERM -1
+#define EUNSUPPORTED_TERM -1
 
 // rxvt-256color
 static const char *rxvt_256color_keys[] = {
 	"\033[11~","\033[12~","\033[13~","\033[14~","\033[15~","\033[17~","\033[18~","\033[19~","\033[20~","\033[21~","\033[23~","\033[24~","\033[2~","\033[3~","\033[7~","\033[8~","\033[5~","\033[6~","\033[A","\033[B","\033[D","\033[C", 0
 };
 static const char *rxvt_256color_funcs[] = {
-	"\0337\033[?47h", "\033[2J\033[?47l\0338", "\033[?25h", "\033[?25l", "\033[H\033[2J", "\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033=", "\033>", TB_ENTER_MOUSE_SEQ, TB_EXIT_MOUSE_SEQ,
+	"\0337\033[?47h", "\033[2J\033[?47l\0338", "\033[?25h", "\033[?25l", "\033[H\033[2J", "\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033=", "\033>", ENTER_MOUSE_SEQ, EXIT_MOUSE_SEQ,
 };
 
 // Eterm
@@ -516,7 +505,7 @@ static const char *screen_keys[] = {
 	"\033OP","\033OQ","\033OR","\033OS","\033[15~","\033[17~","\033[18~","\033[19~","\033[20~","\033[21~","\033[23~","\033[24~","\033[2~","\033[3~","\033[1~","\033[4~","\033[5~","\033[6~","\033OA","\033OB","\033OD","\033OC", 0
 };
 static const char *screen_funcs[] = {
-	"\033[?1049h", "\033[?1049l", "\033[34h\033[?25h", "\033[?25l", "\033[H\033[J", "\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033[?1h\033=", "\033[?1l\033>", TB_ENTER_MOUSE_SEQ, TB_EXIT_MOUSE_SEQ,
+	"\033[?1049h", "\033[?1049l", "\033[34h\033[?25h", "\033[?25l", "\033[H\033[J", "\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033[?1h\033=", "\033[?1l\033>", ENTER_MOUSE_SEQ, EXIT_MOUSE_SEQ,
 };
 
 // rxvt-unicode
@@ -524,7 +513,7 @@ static const char *rxvt_unicode_keys[] = {
 	"\033[11~","\033[12~","\033[13~","\033[14~","\033[15~","\033[17~","\033[18~","\033[19~","\033[20~","\033[21~","\033[23~","\033[24~","\033[2~","\033[3~","\033[7~","\033[8~","\033[5~","\033[6~","\033[A","\033[B","\033[D","\033[C", 0
 };
 static const char *rxvt_unicode_funcs[] = {
-	"\033[?1049h", "\033[r\033[?1049l", "\033[?25h", "\033[?25l", "\033[H\033[2J", "\033[m\033(B", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033=", "\033>", TB_ENTER_MOUSE_SEQ, TB_EXIT_MOUSE_SEQ,
+	"\033[?1049h", "\033[r\033[?1049l", "\033[?25h", "\033[?25l", "\033[H\033[2J", "\033[m\033(B", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033=", "\033>", ENTER_MOUSE_SEQ, EXIT_MOUSE_SEQ,
 };
 
 // linux
@@ -540,7 +529,7 @@ static const char *xterm_keys[] = {
 	"\033OP","\033OQ","\033OR","\033OS","\033[15~","\033[17~","\033[18~","\033[19~","\033[20~","\033[21~","\033[23~","\033[24~","\033[2~","\033[3~","\033OH","\033OF","\033[5~","\033[6~","\033OA","\033OB","\033OD","\033OC", 0
 };
 static const char *xterm_funcs[] = {
-	"\033[?1049h", "\033[?1049l", "\033[?12l\033[?25h", "\033[?25l", "\033[H\033[2J", "\033(B\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033[?1h\033=", "\033[?1l\033>", TB_ENTER_MOUSE_SEQ, TB_EXIT_MOUSE_SEQ,
+	"\033[?1049h", "\033[?1049l", "\033[?12l\033[?25h", "\033[?25l", "\033[H\033[2J", "\033(B\033[m", "\033[4m", "\033[1m", "\033[5m", "\033[7m", "\033[?1h\033=", "\033[?1l\033>", ENTER_MOUSE_SEQ, EXIT_MOUSE_SEQ,
 };
 
 static struct term {
@@ -570,7 +559,7 @@ static int try_compatible(const char *term, const char *name,
 		return 0;
 	}
 
-	return TB_ENSUPPORTED_TERM;
+	return EUNSUPPORTED_TERM;
 }
 
 static int init_term_builtin(void)
@@ -598,12 +587,14 @@ static int init_term_builtin(void)
 			return 0;
 		if (try_compatible(term, "screen", screen_keys, screen_funcs) == 0)
 			return 0;
+		if (try_compatible(term, "tmux", screen_keys, screen_funcs) == 0)
+			return 0;
 		/* let's assume that 'cygwin' is xterm compatible */
 		if (try_compatible(term, "cygwin", xterm_keys, xterm_funcs) == 0)
 			return 0;
 	}
 
-	return TB_ENSUPPORTED_TERM;
+	return EUNSUPPORTED_TERM;
 }
 
 //----------------------------------------------------------------------
@@ -638,7 +629,7 @@ static char *read_file(const char *file) {
 }
 
 static char *terminfo_try_path(const char *path, const char *term) {
-	char tmp[1<<13];
+	char tmp[4096];
 	snprintf(tmp, sizeof(tmp), "%s/%c/%s", path, term[0], term);
 	tmp[sizeof(tmp)-1] = '\0';
 	char *data = read_file(tmp);
@@ -698,6 +689,7 @@ static char *load_terminfo(void) {
 }
 
 #define TI_MAGIC 0432
+#define TI_ALT_MAGIC 542
 #define TI_HEADER_LENGTH 12
 #define TB_KEYS_NUM 22
 
@@ -729,13 +721,16 @@ static int init_term(void) {
 	}
 
 	int16_t *header = (int16_t*)data;
+
+	const int number_sec_len = header[0] == TI_ALT_MAGIC ? 4 : 2;
+
 	if ((header[1] + header[2]) % 2) {
 		// old quirk to align everything on word boundaries
 		header[2] += 1;
 	}
 
 	const int str_offset = TI_HEADER_LENGTH +
-		header[1] + header[2] +	2 * header[3];
+		header[1] + header[2] +	number_sec_len * header[3];
 	const int table_offset = str_offset + 2 * header[4];
 
 	keys = malloc(sizeof(const char*) * (TB_KEYS_NUM+1));
@@ -753,8 +748,8 @@ static int init_term(void) {
 			str_offset + 2 * ti_funcs[i], table_offset);
 	}
 
-	funcs[T_FUNCS_NUM-2] = TB_ENTER_MOUSE_SEQ;
-	funcs[T_FUNCS_NUM-1] = TB_EXIT_MOUSE_SEQ;
+	funcs[T_FUNCS_NUM-2] = ENTER_MOUSE_SEQ;
+	funcs[T_FUNCS_NUM-1] = EXIT_MOUSE_SEQ;
 
 	init_from_terminfo = true;
 	free(data);
@@ -1013,9 +1008,9 @@ struct cellbuf {
 	struct tb_cell *cells;
 };
 
-#define TB_CELL(buf, x, y) (buf)->cells[(y) * (buf)->width + (x)]
-#define TB_IS_CURSOR_HIDDEN(cx, cy) (cx == -1 || cy == -1)
-#define TB_LAST_COORD_INIT -1
+#define CELL(buf, x, y) (buf)->cells[(y) * (buf)->width + (x)]
+#define IS_CURSOR_HIDDEN(cx, cy) (cx == -1 || cy == -1)
+#define LAST_COORD_INIT -1
 
 static struct termios orig_tios;
 
@@ -1033,8 +1028,8 @@ static int outputmode = TB_OUTPUT_NORMAL;
 static int inout;
 static int winch_fds[2];
 
-static int lastx = TB_LAST_COORD_INIT;
-static int lasty = TB_LAST_COORD_INIT;
+static int lastx = LAST_COORD_INIT;
+static int lasty = LAST_COORD_INIT;
 static int cursor_x = -1;
 static int cursor_y = -1;
 
@@ -1071,7 +1066,7 @@ int tb_init_fd(int inout_)
 
 	if (init_term() < 0) {
 		close(inout);
-		return TB_TB_ENSUPPORTED_TERMINAL;
+		return TB_EUNSUPPORTED_TERMINAL;
 	}
 
 	if (pipe(winch_fds) < 0) {
@@ -1154,115 +1149,14 @@ void tb_shutdown(void)
 	termw = termh = -1;
 }
 
-/*
- * This is adapted part from https://github.com/mattn/wcwidth.c/blob/master/wcwidth.c
- * Original author is [mattn](mattn.jp@gmail.com)
- */
-
-struct isltb__interval {
-	long first;
-	long last;
-};
-
-static int isltb__bisearch(wchar_t ucs, const struct isltb__interval *table, int max) {
-	int min = 0;
-	int mid;
-
-	if (ucs < table[0].first || ucs > table[max].last)
-		return 0;
-	while (max >= min) {
-		mid = (min + max) / 2;
-		if (ucs > table[mid].last)
-			min = mid + 1;
-		else if (ucs < table[mid].first)
-			max = mid - 1;
-		else
-			return 1;
-	}
-
-	return 0;
-}
-
-static int isltb__wcwidth(wchar_t ucs) {
-	/* sorted list of non-overlapping intervals of non-spacing characters */
-	static const struct isltb__interval combining[] = {
-		{ 0x0300, 0x034E }, { 0x0360, 0x0362 }, { 0x0483, 0x0486 },
-		{ 0x0488, 0x0489 }, { 0x0591, 0x05A1 }, { 0x05A3, 0x05B9 },
-		{ 0x05BB, 0x05BD }, { 0x05BF, 0x05BF }, { 0x05C1, 0x05C2 },
-		{ 0x05C4, 0x05C4 }, { 0x064B, 0x0655 }, { 0x0670, 0x0670 },
-		{ 0x06D6, 0x06E4 }, { 0x06E7, 0x06E8 }, { 0x06EA, 0x06ED },
-		{ 0x070F, 0x070F }, { 0x0711, 0x0711 }, { 0x0730, 0x074A },
-		{ 0x07A6, 0x07B0 }, { 0x0901, 0x0902 }, { 0x093C, 0x093C },
-		{ 0x0941, 0x0948 }, { 0x094D, 0x094D }, { 0x0951, 0x0954 },
-		{ 0x0962, 0x0963 }, { 0x0981, 0x0981 }, { 0x09BC, 0x09BC },
-		{ 0x09C1, 0x09C4 }, { 0x09CD, 0x09CD }, { 0x09E2, 0x09E3 },
-		{ 0x0A02, 0x0A02 }, { 0x0A3C, 0x0A3C }, { 0x0A41, 0x0A42 },
-		{ 0x0A47, 0x0A48 }, { 0x0A4B, 0x0A4D }, { 0x0A70, 0x0A71 },
-		{ 0x0A81, 0x0A82 }, { 0x0ABC, 0x0ABC }, { 0x0AC1, 0x0AC5 },
-		{ 0x0AC7, 0x0AC8 }, { 0x0ACD, 0x0ACD }, { 0x0B01, 0x0B01 },
-		{ 0x0B3C, 0x0B3C }, { 0x0B3F, 0x0B3F }, { 0x0B41, 0x0B43 },
-		{ 0x0B4D, 0x0B4D }, { 0x0B56, 0x0B56 }, { 0x0B82, 0x0B82 },
-		{ 0x0BC0, 0x0BC0 }, { 0x0BCD, 0x0BCD }, { 0x0C3E, 0x0C40 },
-		{ 0x0C46, 0x0C48 }, { 0x0C4A, 0x0C4D }, { 0x0C55, 0x0C56 },
-		{ 0x0CBF, 0x0CBF }, { 0x0CC6, 0x0CC6 }, { 0x0CCC, 0x0CCD },
-		{ 0x0D41, 0x0D43 }, { 0x0D4D, 0x0D4D }, { 0x0DCA, 0x0DCA },
-		{ 0x0DD2, 0x0DD4 }, { 0x0DD6, 0x0DD6 }, { 0x0E31, 0x0E31 },
-		{ 0x0E34, 0x0E3A }, { 0x0E47, 0x0E4E }, { 0x0EB1, 0x0EB1 },
-		{ 0x0EB4, 0x0EB9 }, { 0x0EBB, 0x0EBC }, { 0x0EC8, 0x0ECD },
-		{ 0x0F18, 0x0F19 }, { 0x0F35, 0x0F35 }, { 0x0F37, 0x0F37 },
-		{ 0x0F39, 0x0F39 }, { 0x0F71, 0x0F7E }, { 0x0F80, 0x0F84 },
-		{ 0x0F86, 0x0F87 }, { 0x0F90, 0x0F97 }, { 0x0F99, 0x0FBC },
-		{ 0x0FC6, 0x0FC6 }, { 0x102D, 0x1030 }, { 0x1032, 0x1032 },
-		{ 0x1036, 0x1037 }, { 0x1039, 0x1039 }, { 0x1058, 0x1059 },
-		{ 0x1160, 0x11FF }, { 0x17B7, 0x17BD }, { 0x17C6, 0x17C6 },
-		{ 0x17C9, 0x17D3 }, { 0x180B, 0x180E }, { 0x18A9, 0x18A9 },
-		{ 0x200B, 0x200F }, { 0x202A, 0x202E }, { 0x206A, 0x206F },
-		{ 0x20D0, 0x20E3 }, { 0x302A, 0x302F }, { 0x3099, 0x309A },
-		{ 0xFB1E, 0xFB1E }, { 0xFE20, 0xFE23 }, { 0xFEFF, 0xFEFF },
-		{ 0xFFF9, 0xFFFB }
-	};
-
-	/* test for 8-bit control characters */
-	if (ucs == 0)
-		return 0;
-	if (ucs < 32 || (ucs >= 0x7f && ucs < 0xa0))
-		return -1;
-
-	/* binary search in table of non-spacing characters */
-	if (isltb__bisearch(ucs, combining,
-				sizeof(combining) / sizeof(struct isltb__interval) - 1))
-		return 0;
-
-	/* if we arrive here, ucs is not a combining or C0/C1 control character */
-
-	return 1 +
-		(ucs >= 0x1100 &&
-		 (ucs <= 0x115f ||                    /* Hangul Jamo init. consonants */
-			(ucs >= 0x2e80 && ucs <= 0xa4cf && (ucs & ~0x0011) != 0x300a &&
-			 ucs != 0x303f) ||                  /* CJK ... Yi */
-			(ucs >= 0xac00 && ucs <= 0xd7a3) || /* Hangul Syllables */
-			(ucs >= 0xf900 && ucs <= 0xfaff) || /* CJK Compatibility Ideographs */
-			(ucs >= 0xfe30 && ucs <= 0xfe6f) || /* CJK Compatibility Forms */
-			(ucs >= 0xff00 && ucs <= 0xff5f) || /* Fullwidth Forms */
-			(ucs >= 0xffe0 && ucs <= 0xffe6) ||
-#ifndef _WIN32
-			(ucs >= 0x20000 && ucs <= 0x2ffff)
-#else
-			0
-#endif
-		 ));
-}
-
-/* End of adapted part for wcwidth implementation */
-
 void tb_present(void)
 {
 	int x,y,w,i;
 	struct tb_cell *back, *front;
 
 	/* invalidate cursor position */
-	lastx = TB_LAST_COORD_INIT;
-	lasty = TB_LAST_COORD_INIT;
+	lastx = LAST_COORD_INIT;
+	lasty = LAST_COORD_INIT;
 
 	if (buffer_size_change_request) {
 		update_size();
@@ -1271,9 +1165,9 @@ void tb_present(void)
 
 	for (y = 0; y < front_buffer.height; ++y) {
 		for (x = 0; x < front_buffer.width; ) {
-			back = &TB_CELL(&back_buffer, x, y);
-			front = &TB_CELL(&front_buffer, x, y);
-			w = isltb__wcwidth(back->ch);
+			back = &CELL(&back_buffer, x, y);
+			front = &CELL(&front_buffer, x, y);
+			w = wcwidth(back->ch);
 			if (w < 1) w = 1;
 			if (memcmp(back, front, sizeof(struct tb_cell)) == 0) {
 				x += w;
@@ -1289,7 +1183,7 @@ void tb_present(void)
 			} else {
 				send_char(x, y, back->ch);
 				for (i = 1; i < w; ++i) {
-					front = &TB_CELL(&front_buffer, x + i, y);
+					front = &CELL(&front_buffer, x + i, y);
 					front->ch = 0;
 					front->fg = back->fg;
 					front->bg = back->bg;
@@ -1298,22 +1192,22 @@ void tb_present(void)
 			x += w;
 		}
 	}
-	if (!TB_IS_CURSOR_HIDDEN(cursor_x, cursor_y))
+	if (!IS_CURSOR_HIDDEN(cursor_x, cursor_y))
 		write_cursor(cursor_x, cursor_y);
 	bytebuffer_flush(&output_buffer, inout);
 }
 
 void tb_set_cursor(int cx, int cy)
 {
-	if (TB_IS_CURSOR_HIDDEN(cursor_x, cursor_y) && !TB_IS_CURSOR_HIDDEN(cx, cy))
+	if (IS_CURSOR_HIDDEN(cursor_x, cursor_y) && !IS_CURSOR_HIDDEN(cx, cy))
 		bytebuffer_puts(&output_buffer, funcs[T_SHOW_CURSOR]);
 
-	if (!TB_IS_CURSOR_HIDDEN(cursor_x, cursor_y) && TB_IS_CURSOR_HIDDEN(cx, cy))
+	if (!IS_CURSOR_HIDDEN(cursor_x, cursor_y) && IS_CURSOR_HIDDEN(cx, cy))
 		bytebuffer_puts(&output_buffer, funcs[T_HIDE_CURSOR]);
 
 	cursor_x = cx;
 	cursor_y = cy;
-	if (!TB_IS_CURSOR_HIDDEN(cursor_x, cursor_y))
+	if (!IS_CURSOR_HIDDEN(cursor_x, cursor_y))
 		write_cursor(cursor_x, cursor_y);
 }
 
@@ -1323,7 +1217,7 @@ void tb_put_cell(int x, int y, const struct tb_cell *cell)
 		return;
 	if ((unsigned)y >= (unsigned)back_buffer.height)
 		return;
-	TB_CELL(&back_buffer, x, y) = *cell;
+	CELL(&back_buffer, x, y) = *cell;
 }
 
 void tb_change_cell(int x, int y, uint32_t ch, uint16_t fg, uint16_t bg)
@@ -1355,7 +1249,7 @@ void tb_blit(int x, int y, int w, int h, const struct tb_cell *cells)
 		hh = back_buffer.height - y;
 
 	int sy;
-	struct tb_cell *dst = &TB_CELL(&back_buffer, x, y);
+	struct tb_cell *dst = &CELL(&back_buffer, x, y);
 	const struct tb_cell *src = cells + yo * w + xo;
 	size_t size = sizeof(struct tb_cell) * ww;
 
@@ -1416,7 +1310,7 @@ int tb_select_input_mode(int mode)
 
 		inputmode = mode;
 		if (mode&TB_INPUT_MOUSE) {
-			bytebuffer_puts(&output_buffer, funcs[T_TB_ENTER_MOUSE]);
+			bytebuffer_puts(&output_buffer, funcs[T_ENTER_MOUSE]);
 			bytebuffer_flush(&output_buffer, inout);
 		} else {
 			bytebuffer_puts(&output_buffer, funcs[T_EXIT_MOUSE]);
@@ -1439,83 +1333,6 @@ void tb_set_clear_attributes(uint16_t fg, uint16_t bg)
 	background = bg;
 }
 
-static const unsigned char utf8_length[256] = {
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-  3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
-};
-
-static const unsigned char utf8_mask[6] = {
-	0x7F,
-	0x1F,
-	0x0F,
-	0x07,
-	0x03,
-	0x01
-};
-
-int tb_utf8_char_length(char c)
-{
-	return utf8_length[(unsigned char)c];
-}
-
-int tb_utf8_char_to_unicode(uint32_t *out, const char *c)
-{
-	if (*c == 0)
-		return TB_EOF;
-
-	int i;
-	unsigned char len = tb_utf8_char_length(*c);
-	unsigned char mask = utf8_mask[len-1];
-	uint32_t result = c[0] & mask;
-	for (i = 1; i < len; ++i) {
-		result <<= 6;
-		result |= c[i] & 0x3f;
-	}
-
-	*out = result;
-	return (int)len;
-}
-
-int tb_utf8_unicode_to_char(char *out, uint32_t c)
-{
-	int len = 0;
-	int first;
-	int i;
-
-	if (c < 0x80) {
-		first = 0;
-		len = 1;
-	} else if (c < 0x800) {
-		first = 0xc0;
-		len = 2;
-	} else if (c < 0x10000) {
-		first = 0xe0;
-		len = 3;
-	} else if (c < 0x200000) {
-		first = 0xf0;
-		len = 4;
-	} else if (c < 0x4000000) {
-		first = 0xf8;
-		len = 5;
-	} else {
-		first = 0xfc;
-		len = 6;
-	}
-
-	for (i = len - 1; i > 0; --i) {
-		out[i] = (c & 0x3f) | 0x80;
-		c >>= 6;
-	}
-	out[0] = c | first;
-
-	return len;
-}
 /* -------------------------------------------------------- */
 
 static int convertnum(uint32_t num, char* buf) {
@@ -1662,8 +1479,8 @@ static void update_term_size(void)
 
 static void send_attr(uint16_t fg, uint16_t bg)
 {
-#define TB_LAST_ATTR_INIT 0xFFFF
-	static uint16_t lastfg = TB_LAST_ATTR_INIT, lastbg = TB_LAST_ATTR_INIT;
+#define LAST_ATTR_INIT 0xFFFF
+	static uint16_t lastfg = LAST_ATTR_INIT, lastbg = LAST_ATTR_INIT;
 	if (fg != lastfg || bg != lastbg) {
 		bytebuffer_puts(&output_buffer, funcs[T_SGR0]);
 
@@ -1727,7 +1544,7 @@ static void send_clear(void)
 {
 	send_attr(foreground, background);
 	bytebuffer_puts(&output_buffer, funcs[T_CLEAR_SCREEN]);
-	if (!TB_IS_CURSOR_HIDDEN(cursor_x, cursor_y))
+	if (!IS_CURSOR_HIDDEN(cursor_x, cursor_y))
 		write_cursor(cursor_x, cursor_y);
 	bytebuffer_flush(&output_buffer, inout);
 
@@ -1736,16 +1553,15 @@ static void send_clear(void)
 	 * actually may be in the correct place, but we simply discard
 	 * optimization once and it gives us simple solution for the case when
 	 * cursor moved */
-	lastx = TB_LAST_COORD_INIT;
-	lasty = TB_LAST_COORD_INIT;
+	lastx = LAST_COORD_INIT;
+	lasty = LAST_COORD_INIT;
 }
 
 static void sigwinch_handler(int xxx)
 {
 	(void) xxx;
 	const int zzz = 1;
-	if(write(winch_fds[1], &zzz, sizeof(int)))
-		;
+	write(winch_fds[1], &zzz, sizeof(int));
 }
 
 static void update_size(void)
@@ -1793,7 +1609,7 @@ static int read_up_to(int n) {
 static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 {
 	// ;-)
-#define TB_ENOUGH_DATA_FOR_PARSING 64
+#define ENOUGH_DATA_FOR_PARSING 64
 	fd_set events;
 	memset(event, 0, sizeof(struct tb_event));
 
@@ -1804,7 +1620,7 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 
 	// it looks like input buffer is incomplete, let's try the short path,
 	// but first make sure there is enough space
-	int n = read_up_to(TB_ENOUGH_DATA_FOR_PARSING);
+	int n = read_up_to(ENOUGH_DATA_FOR_PARSING);
 	if (n < 0)
 		return -1;
 	if (n > 0 && extract_event(event, &input_buffer, inputmode))
@@ -1822,7 +1638,7 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 
 		if (FD_ISSET(inout, &events)) {
 			event->type = TB_EVENT_KEY;
-			n = read_up_to(TB_ENOUGH_DATA_FOR_PARSING);
+			n = read_up_to(ENOUGH_DATA_FOR_PARSING);
 			if (n < 0)
 				return -1;
 
@@ -1835,8 +1651,7 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 		if (FD_ISSET(winch_fds[0], &events)) {
 			event->type = TB_EVENT_RESIZE;
 			int zzz = 0;
-			if(read(winch_fds[0], &zzz, sizeof(int)))
-				;
+			read(winch_fds[0], &zzz, sizeof(int));
 			buffer_size_change_request = 1;
 			get_term_size(&event->w, &event->h);
 			return TB_EVENT_RESIZE;
@@ -1844,10 +1659,89 @@ static int wait_fill_event(struct tb_event *event, struct timeval *timeout)
 	}
 }
 
+static const unsigned char utf8_length[256] = {
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+  3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
+};
+
+static const unsigned char utf8_mask[6] = {
+	0x7F,
+	0x1F,
+	0x0F,
+	0x07,
+	0x03,
+	0x01
+};
+
+int tb_utf8_char_length(char c)
+{
+	return utf8_length[(unsigned char)c];
+}
+
+int tb_utf8_char_to_unicode(uint32_t *out, const char *c)
+{
+	if (*c == 0)
+		return TB_EOF;
+
+	int i;
+	unsigned char len = tb_utf8_char_length(*c);
+	unsigned char mask = utf8_mask[len-1];
+	uint32_t result = c[0] & mask;
+	for (i = 1; i < len; ++i) {
+		result <<= 6;
+		result |= c[i] & 0x3f;
+	}
+
+	*out = result;
+	return (int)len;
+}
+
+int tb_utf8_unicode_to_char(char *out, uint32_t c)
+{
+	int len = 0;
+	int first;
+	int i;
+
+	if (c < 0x80) {
+		first = 0;
+		len = 1;
+	} else if (c < 0x800) {
+		first = 0xc0;
+		len = 2;
+	} else if (c < 0x10000) {
+		first = 0xe0;
+		len = 3;
+	} else if (c < 0x200000) {
+		first = 0xf0;
+		len = 4;
+	} else if (c < 0x4000000) {
+		first = 0xf8;
+		len = 5;
+	} else {
+		first = 0xfc;
+		len = 6;
+	}
+
+	for (i = len - 1; i > 0; --i) {
+		out[i] = (c & 0x3f) | 0x80;
+		c >>= 6;
+	}
+	out[0] = c | first;
+
+	return len;
+}
 
 #endif // ISL_TERMBOX_IMPLEMENTATION
 
 #ifdef ISL_TERMBOX_LUA
+
+#define LUA_TERMBOXLIBNAME "termbox"
 
 #include <lua.h>
 #include <lauxlib.h>
